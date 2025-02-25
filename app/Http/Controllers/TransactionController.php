@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\CryptoHelper;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Exception;
 
 class TransactionController extends Controller
@@ -30,14 +33,19 @@ class TransactionController extends Controller
                 'content' => 'required|string',
             ]);
 
+           
+    
             $transaction = Transaction::create([
                 'title' => $request->title,
                 'content' => $request->content,
                 'user_id' => Auth::id(),
             ]);
 
-            return response()->json($transaction, 201);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Transaction created successfully',
+                'transaction' => $transaction
+            ], 201);
+        } catch (ValidationException $e) {
             return response()->json([
                 'message' => 'Validation error',
                 'errors' => $e->errors()
@@ -55,13 +63,67 @@ class TransactionController extends Controller
         try {
             $transaction = Transaction::where('user_id', Auth::id())->findOrFail($id);
             return response()->json($transaction);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json([
                 'message' => 'Transaction not found'
             ], 404);
         } catch (Exception $e) {
             return response()->json([
                 'message' => 'Failed to fetch transaction',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function update(Request $request, $id)
+    {
+        try {
+            $transaction = Transaction::where('user_id', Auth::id())->findOrFail($id);
+
+            $request->validate([
+                'title' => 'sometimes|string|max:255',
+                'content' => 'sometimes|string',
+            ]);
+
+            $transaction->update($request->all());
+
+            return response()->json([
+                'message' => 'Transaction updated successfully',
+                'transaction' => $transaction
+            ]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation error',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'message' => 'Transaction not found'
+            ], 404);
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => 'Failed to update transaction',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function destroy($id)
+    {
+        try {
+            $transaction = Transaction::where('user_id', Auth::id())->findOrFail($id);
+            $transaction->delete();
+
+            return response()->json([
+                'message' => 'Transaction deleted successfully'
+            ]);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'message' => 'Transaction not found'
+            ], 404);
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => 'Failed to delete transaction',
                 'error' => $e->getMessage()
             ], 500);
         }

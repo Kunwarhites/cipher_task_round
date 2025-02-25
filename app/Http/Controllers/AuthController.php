@@ -7,14 +7,20 @@ use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Exception;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+
+
+
     public function register(Request $request)
     {
         try {
+
             $validator = Validator::make($request->all(), [
                 'name' => 'required|string|max:255',
                 'email' => 'required|string|email|max:255|unique:users',
@@ -28,15 +34,20 @@ class AuthController extends Controller
                 ], 422);
             }
 
+            // $encryptionKey = Str::random(64);
+            // // dd($encryptionKey);
+
             $user = User::create([
                 'name' => $request->name,
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
+                // 'encryption_key' => $encryptionKey,
             ]);
 
             return response()->json([
                 'message' => 'User registered successfully',
-                'token' => $user->createToken('auth_token')->plainTextToken
+                'token' => $user->createToken('auth_token')->plainTextToken,
+                // 'encryption_key' => $encryptionKey
             ], 201);
         } catch (Exception $e) {
             return response()->json([
@@ -45,6 +56,8 @@ class AuthController extends Controller
             ], 500);
         }
     }
+
+
 
 
     public function login(Request $request)
